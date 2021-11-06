@@ -29,5 +29,18 @@
         ];
       };
     };
+
+    homeManagerConfigurations = {
+      dominic = home-manager.lib.homeManagerConfiguration {
+        inherit system pkgs;
+        username = "dominic";
+        homeDirectory = "/home/dominic";
+        configuration = {
+          imports = [
+            ./users/dominic/home.nix
+          ];
+        };
+      };
+    };
   };
 }
