@@ -8,6 +8,9 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+
+      # Include system accounts
+      ../.secrets/system-accounts.nix
     ];
   # Enable proprietary NVidia drivers
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -80,16 +83,6 @@
   # Enable fish
   programs.fish.enable = true;
   users.defaultUserShell = pkgs.fish;
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.dominic = {
-    isNormalUser = true;
-    initialPassword = "pass";
-    extraGroups = [ 
-      "wheel" # Enable ‘sudo’ for the user.
-      "networkmanager" # Let user manage NetworkManager
-    ];
-    useDefaultShell = true;
-  };
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
