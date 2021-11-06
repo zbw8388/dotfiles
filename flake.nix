@@ -21,11 +21,21 @@
 
   in {
     nixosConfigurations = {
-      desktop = lib.nixosSystem {
+      nixos-desktop = lib.nixosSystem {
         inherit system;
 
         modules = [
           ./system/configuration.nix
+          ./system/hosts/desktop.nix
+        ];
+      };
+
+      nixos-laptop = lib.nixosSystem {
+        inherit system;
+
+        modules = [
+          ./system/configuration.nix
+          ./system/hosts/laptop.nix
         ];
       };
     };
@@ -35,6 +45,7 @@
         inherit system pkgs;
         username = "dominic";
         homeDirectory = "/home/dominic";
+        stateVersion = "21.11";
         configuration = {
           imports = [
             ./users/dominic/home.nix
