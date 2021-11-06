@@ -30,7 +30,6 @@
    };
   };
 
-  networking.hostName = "nixos"; # Define your hostname.
   networking.networkmanager = {
     enable = true; # Enable NetworkManager
     # see https://bbs.archlinux.org/viewtopic.php?id=252639
