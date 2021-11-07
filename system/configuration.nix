@@ -9,6 +9,9 @@
     [ 
       # Include system accounts
       ../.secrets/system-accounts.nix
+
+      # Include wifi login info
+      ../.secrets/wifi-logins.nix
     ];
   # Enable proprietary NVidia drivers
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -33,6 +36,7 @@
     # see https://bbs.archlinux.org/viewtopic.php?id=252639
     wifi.backend = "iwd"; # wpa_supplicant is having weird issues
   };
+  networking.wireless.iwd.enable = true;
 
   # Set your time zone.
   time.timeZone = "America/New_York";
