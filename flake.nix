@@ -26,7 +26,7 @@
 
         modules = [
           ./system/configuration.nix
-          ./system/hosts/desktop.nix
+          ./system/hosts/desktop
         ];
       };
 
@@ -35,7 +35,7 @@
 
         modules = [
           ./system/configuration.nix
-          ./system/hosts/laptop.nix
+          ./system/hosts/laptop
         ];
       };
     };
