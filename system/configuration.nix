@@ -31,16 +31,11 @@
   networking.networkmanager = {
     enable = true; # Enable NetworkManager
   };
+  # Use new linux kernel
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Set your time zone.
   time.timeZone = "America/New_York";
-
-  # The global useDHCP flag is deprecated, therefore explicitly set to false here.
-  # Per-interface useDHCP will be mandatory in the future, so this generated config
-  # replicates the default behaviour.
-  networking.useDHCP = false;
-  networking.interfaces.enp6s0.useDHCP = true;
-  networking.interfaces.wlp5s0.useDHCP = true;
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
@@ -85,7 +80,12 @@
     vim
     wget
     firefox
-    busybox # utilities
+    # utilities
+    busybox 
+    lshw
+    inxi
+    glxinfo
+
     git
     gnome.gnome-tweaks
     fish
