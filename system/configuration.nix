@@ -32,6 +32,8 @@
     enable = true; # Enable NetworkManager
   };
   # Use new linux kernel
+  # As of 5.15 WiFi works correctly; it did NOT work on the (at the time)
+  # LTS kernel 5.10.
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Set your time zone.
