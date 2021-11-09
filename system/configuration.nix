@@ -82,11 +82,17 @@
     vim
     wget
     firefox
+
     # utilities
     busybox 
     lshw
     inxi
     glxinfo
+    gparted
+
+    # drivers
+    ntfs3g
+    exfat
 
     git
     gnome.gnome-tweaks
