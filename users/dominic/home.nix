@@ -70,16 +70,6 @@
     gnomeExtensions.ddterm
   ];
 
-  # Starter VSCode settings
-  programs.vscode = {
-    enable = true;
-    extensions = with pkgs.vscode-extensions; [
-      mikestead.dotenv
-      bbenoist.nix
-      haskell.haskell
-    ];
-  };
-
   # fish Shell
   programs.fish = {
     enable = true;
