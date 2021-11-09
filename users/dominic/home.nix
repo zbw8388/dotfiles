@@ -49,6 +49,7 @@
     speedcrunch
     mailspring
     libreoffice
+    todoist-electron
 
     # Creativity
     inkscape
