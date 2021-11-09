@@ -44,6 +44,7 @@
     discord
     slack
     zoom-us
+    element-desktop
 
     # Productivity
     speedcrunch
