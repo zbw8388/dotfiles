@@ -10,8 +10,6 @@
       # Include system accounts
       ../.secrets/system-accounts.nix
     ];
-  # Enable proprietary NVidia drivers
-  services.xserver.videoDrivers = [ "nvidia" ];
   
   # And allow proprietary software to be installed
   nixpkgs.config.allowUnfree = true;
