@@ -51,6 +51,7 @@
     mailspring
     libreoffice
     todoist-electron
+    pdfmixtool
 
     # Creativity
     inkscape
