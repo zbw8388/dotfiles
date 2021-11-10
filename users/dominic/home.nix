@@ -18,6 +18,7 @@
     zellij
     ripgrep
     fzf
+    fd
 
     # Encrypted git files
     git-crypt
