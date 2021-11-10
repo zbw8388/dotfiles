@@ -38,6 +38,14 @@
           ./system/hosts/laptop
         ];
       };
+
+      nixos-installer = lib.nixosSystem {
+        inherit system;
+
+        modules = [
+          "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-plasma5-new-kernel.nix"
+        ];
+      };
     };
 
     homeManagerConfigurations = {
