@@ -39,6 +39,7 @@
     filezilla
     docker
     docker-compose
+    emacs
 
     # Communication
     discord
