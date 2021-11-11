@@ -8,4 +8,6 @@
     ];
 
   networking.hostName = "nixos-laptop"; # Define your hostname.
+
+  boot.kernelPackages = pkgs.linuxPackages_5_14;
 }
