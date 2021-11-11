@@ -19,6 +19,7 @@
     ripgrep
     fzf
     fd
+    openssl
 
     # Encrypted git files
     git-crypt
