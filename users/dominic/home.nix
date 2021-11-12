@@ -69,6 +69,7 @@
     # Other apps
     _1password-gui
     google-chrome
+    spotify
 
     # Fonts
     hack-font
