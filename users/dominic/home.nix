@@ -29,6 +29,10 @@
     # Rust
     rustup
 
+    # Javascript
+    nodejs
+    yarn
+
     # C
     valgrind
     gdb
