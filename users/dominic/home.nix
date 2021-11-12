@@ -59,7 +59,6 @@
     libreoffice
     todoist-electron
     pdfmixtool
-    mathematica
 
     # Creativity
     inkscape
