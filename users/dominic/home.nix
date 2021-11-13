@@ -46,6 +46,7 @@
     docker
     docker-compose
     emacs
+    racket
 
     # Communication
     discord
