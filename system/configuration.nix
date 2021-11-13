@@ -78,7 +78,7 @@
     firefox
 
     # utilities
-    busybox 
+    coreutils-full
     lshw
     inxi
     glxinfo
