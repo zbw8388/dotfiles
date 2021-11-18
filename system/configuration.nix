@@ -26,6 +26,9 @@
    };
   };
 
+  # Windows dual-boot time fix
+  time.hardwareClockInLocalTime = true;
+
   networking.networkmanager = {
     enable = true; # Enable NetworkManager
   };
