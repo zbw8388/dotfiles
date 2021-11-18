@@ -61,11 +61,12 @@
     todoist-electron
     pdfmixtool
 
-    # Creativity
+    # Media
     inkscape
     gimp
     handbrake
     ffmpeg
+    vlc
 
     # Other apps
     _1password-gui
