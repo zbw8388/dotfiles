@@ -49,7 +49,6 @@
     # Doom Emacs
     emacs
     fd
-    clang
 
     # Communication
     discord
