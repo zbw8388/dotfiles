@@ -131,7 +131,7 @@
   home.file.".doom.d" = {
     source = ./doom-emacs;
     onChange = "~/.emacs.d/bin/doom sync";
-  }
+  };
 
   # Theming
   gtk.theme.name = "Adwaita-dark";
