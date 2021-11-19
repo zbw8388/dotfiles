@@ -18,7 +18,6 @@
     zellij
     ripgrep
     fzf
-    fd
     openssl
 
     # Encrypted git files
@@ -45,8 +44,12 @@
     filezilla
     docker
     docker-compose
-    emacs
     racket
+
+    # Doom Emacs
+    emacs
+    fd
+    clang
 
     # Communication
     discord
@@ -123,6 +126,12 @@
     enable = true;
     pinentryFlavor = "gnome3";
   };
+
+  # Doom emacs
+  home.file.".doom.d" = {
+    source = ./doom-emacs;
+    onChange = "~/.emacs.d/bin/doom sync";
+  }
 
   # Theming
   gtk.theme.name = "Adwaita-dark";
