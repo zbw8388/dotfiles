@@ -37,6 +37,9 @@
     gdb
     gcc
 
+    # Python
+    python38
+
     # Coding tools
     alacritty
     vscode
