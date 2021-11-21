@@ -94,6 +94,7 @@
     inxi
     glxinfo
     gparted
+    xorg.xkill
 
     # drivers
     ntfs3g
