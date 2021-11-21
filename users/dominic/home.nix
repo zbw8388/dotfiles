@@ -72,6 +72,7 @@
     handbrake
     ffmpeg
     vlc
+    audacity
 
     # Other apps
     _1password-gui
