@@ -91,6 +91,7 @@ in
       _1password-gui
       google-chrome
       spotify
+      gnome.gnome-boxes
 
       # Fonts
       hack-font
