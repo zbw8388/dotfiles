@@ -64,8 +64,7 @@ in
       customNodePackages.marked
       customNodePackages.stylelint
       rust-analyzer
-      cmake
-      gnumake
+      ispell
 
       # Communication
       discord
