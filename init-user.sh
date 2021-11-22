@@ -5,5 +5,6 @@ sh ./.dotfiles/apply-user.sh
 # doom emacs
 git clone https://github.com/hlissner/doom-emacs ~/.emacs.d
 ~/.emacs.d/bin/doom install --no-env --no-config
-fish_add_path ~/.emacs.d/bin
+cargo install cargo-check
+rustup component add clippy-preview
 popd

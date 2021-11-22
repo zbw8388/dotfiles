@@ -1,7 +1,9 @@
-{ config, pkgs, ... }:
+{ config, pkgs, system, ... }:
 
 let
-  customNodePackages = import ./node/default.nix {};
+  customNodePackages = import ./node/default.nix {
+    inherit pkgs system;
+  };
 in
   {
     # Let Home Manager install and manage itself.
@@ -15,8 +17,6 @@ in
     
       
     home.packages = with pkgs; [
-      customNodePackages
-
       # CLI tools
       htop
       gh
@@ -60,8 +60,12 @@ in
       emacs
       fd
       nixfmt
-      rustracer
       shellcheck
+      customNodePackages.marked
+      customNodePackages.stylelint
+      rust-analyzer
+      cmake
+      gnumake
 
       # Communication
       discord
@@ -99,9 +103,16 @@ in
       gnomeExtensions.ddterm
     ];
 
+    # env vars
+    home.sessionVariables = {
+      RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+    };
+
     # fish Shell
     programs.fish = {
       enable = true;
+      # add doom to path
+      interactiveShellInit = "fish_add_path ~/.emacs.d/bin";
       plugins = [
         {
           name = "plugin-foreign-env";
