@@ -42,7 +42,7 @@ in
       # C
       valgrind
       gdb
-      gcc
+      clang
 
       # Python
       python38
