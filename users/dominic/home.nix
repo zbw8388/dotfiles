@@ -43,6 +43,7 @@ in
       valgrind
       gdb
       clang
+      clang-tools
 
       # Python
       python38
