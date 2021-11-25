@@ -79,6 +79,7 @@ in
       libreoffice
       todoist-electron
       pdfmixtool
+      obsidian
 
       # Media
       inkscape
