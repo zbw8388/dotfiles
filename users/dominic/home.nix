@@ -66,6 +66,9 @@ in
       customNodePackages.stylelint
       rust-analyzer
       ispell
+      pandoc
+      auctex
+      texlive.combined.scheme-full
 
       # Communication
       discord
