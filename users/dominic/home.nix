@@ -45,6 +45,11 @@ in
       clang
       clang-tools
 
+      # Haskell
+      ghc
+      haskell-language-server
+      haskellPackages.hoogle
+
       # Python
       python38
 
