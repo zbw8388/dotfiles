@@ -104,6 +104,7 @@ in
       google-chrome
       spotify
       gnome.gnome-boxes
+      etcher
 
       # Fonts
       hack-font
