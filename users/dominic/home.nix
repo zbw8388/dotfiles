@@ -26,6 +26,8 @@ in
       ripgrep
       fzf
       openssl
+      binutils
+      file
 
       # Encrypted git files
       git-crypt
