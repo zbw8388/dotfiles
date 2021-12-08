@@ -9,6 +9,7 @@
              (gnu packages vim)
              (gnu packages emacs)
              (gnu packages linux)
+             (gnu packages mtools)
              (nongnu packages linux)
              (nongnu system linux-initrd))
 
