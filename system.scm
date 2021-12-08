@@ -8,6 +8,7 @@
              (gnu packages version-control)
              (gnu packages vim)
              (gnu packages emacs)
+             (gnu packages linux)
              (nongnu packages linux)
              (nongnu system linux-initrd))
 
