@@ -4,6 +4,8 @@
 
 (use-modules (gnu)
              (gnu system nss)
+             (gnu packages xorg)
+             (gnu packages version-control)
              (gnu packages vim)
              (gnu packages emacs)
              (nongnu packages linux)
