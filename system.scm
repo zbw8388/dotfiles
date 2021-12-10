@@ -13,7 +13,7 @@
              (nongnu packages linux)
              (nongnu system linux-initrd))
 
-(use-service-modules desktop xorg)
+(use-service-modules cups desktop networking xorg)
 (use-package-modules certs gnome)
 
 (operating-system
@@ -33,7 +33,7 @@
   ;; Partition mounted on /boot/efi.
   (bootloader (bootloader-configuration
                 (bootloader grub-efi-bootloader)
-                (target "/boot/efi")
+                (targets (list "/boot/efi"))
                 (keyboard-layout keyboard-layout)))
 
    (file-systems (append
@@ -45,7 +45,7 @@
                         (file-system
                          ;; Boot partition
                          (device (file-system-label "BOOT"))
-                         (mount-point "/boot")
+                         (mount-point "/boot/efi")
                          (type "vfat")))
                  %base-file-systems))
 
