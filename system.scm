@@ -1,7 +1,3 @@
-;; This is an operating system configuration template
-;; for a "desktop" setup with GNOME and Xfce where the
-;; root partition is encrypted with LUKS.
-
 (use-modules (gnu)
              (gnu system nss)
              (gnu packages xorg)
@@ -10,6 +6,7 @@
              (gnu packages emacs)
              (gnu packages linux)
              (gnu packages file-systems)
+	     (gnu packages disk)
              (nongnu packages linux)
              (nongnu system linux-initrd))
 
@@ -64,13 +61,14 @@
   ;; This is where we specify system-wide packages.
   (packages (append (list
                      git
-                     ;; file system drivers
+                     ;; file system tools
+		     btrfs-progs
                      ntfs-3g
                      exfat-utils
                      fuse-exfat
+		     dosfstools
                      ;; editors
                      vim
-                     emacs
                      xterm
                      ;; for HTTPS access
                      nss-certs
