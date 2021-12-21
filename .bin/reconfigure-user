@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+guix package -m ~/.dotfiles/users/${1}.scm
+

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 sudo cat << EOF >> /boot/grub/grub.cfg
 menuentry "Windows" {
   insmod part_gpt

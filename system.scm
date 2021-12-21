@@ -7,6 +7,7 @@
              (gnu packages linux)
              (gnu packages file-systems)
 	     (gnu packages disk)
+	     (gnu packages gnome)
              (nongnu packages linux)
              (nongnu system linux-initrd))
 
@@ -70,6 +71,9 @@
                      ;; editors
                      vim
                      xterm
+		     ;; gnome
+		     gnome-tweaks
+		     gnome-themes-extra
                      ;; for HTTPS access
                      nss-certs
                      ;; for user mounts
