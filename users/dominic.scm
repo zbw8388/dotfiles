@@ -4,6 +4,7 @@
 	     (gnu services)
 	     (guix gexp)
 	     (gnu packages admin)
+	     (gnu packages code)
 	     (gnu packages chromium)
 	     (gnu packages disk)
 	     (gnu packages emacs)
@@ -17,6 +18,7 @@
 	     (gnu packages node)
 	     (gnu packages rust)
 	     (gnu packages rust-apps)
+	     (gnu packages ssh)
 	     (gnu packages terminals)
 	     (gnu packages tls)
 	     ;; Non-free packages
@@ -31,8 +33,9 @@
     thefuck
     ripgrep
     fzf
-    openssl
     file
+    openssl
+    openssh
 
     ;; Languages
     rust
