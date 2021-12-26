@@ -5,7 +5,7 @@
 :PROPERTIES:
 :header-args: :tangle base/system.scm
 :END:
-*** Utilities/Modules
+*** Functions/Modules
 #+begin_src scheme
 (define-module (base system))
 
@@ -130,117 +130,547 @@
 :PROPERTIES:
 :header-args: :tangle base/home.scm
 :END:
-*** Utilities/Modules
+*** Functions/Modules
 #+begin_src scheme
-(define-module (base home))
+(define-module (base home)
+  #:export (make-home-module
+            home-module?
 
-(use-modules (gnu home)
-             (gnu home services)
-             (gnu home services shells)
+            home-module-packages
+            home-module-services))
+
+(use-modules (gnu)
              (gnu services)
-             (guix gexp)
-             (gnu packages admin)
-             (gnu packages code)
-             (gnu packages chromium)
-             (gnu packages disk)
-             (gnu packages emacs)
-             (gnu packages emacs-xyz)
-             (gnu packages file)
-             (gnu packages fonts)
-             (gnu packages gnome)
-             (gnu packages libreoffice)
-             (gnu packages llvm)
-             (gnu packages maths)
-             (gnu packages node)
-             (gnu packages rust)
-             (gnu packages rust-apps)
-             (gnu packages ssh)
-             (gnu packages terminals)
-             (gnu packages tls)
-             (gnu packages package-management)
-             (gnu packages haskell-apps)
-             (gnu packages python)
-             (gnu packages python-xyz)
-             (gnu packages haskell)
-             (gnu packages haskell-xyz)
-             (gnu packages racket)
-             ;; Non-free packages
-             (nongnu packages mozilla))
-#+end_src
-*** Home Packages & Services
-#+begin_src scheme
+             (gnu home)
+             (gnu home services)
+             (srfi srfi-1)
+             (srfi srfi-9))
+
+(define-record-type <home-module>
+  (make-home-module packages services)
+  home-module?
+  (packages home-module-packages)
+  (services home-module-services))
+
+(define-public (append-home-modules modules)
+  (make-home-module
+   (reduce append '() (map home-module-packages modules))
+   (reduce append '() (map home-module-services modules))))
+
 (define-public (make-machine-service machine)
   (simple-service 'dotfile-machine-name-environment-service
                   home-environment-variables-service-type
                   `(("DOTFILES_MACHINE" . ,machine))))
+#+end_src
+*** Shell
+#+begin_src scheme
+(use-modules (gnu packages shells)
+             (gnu packages shellutils)
+             (gnu home services shells))
 
-(define-public %home-packages (list
-                               ;; CLI tools
-                               htop
-                               cloc
-                               thefuck
-                               ripgrep
-                               fzf
+(define %shell-packages (list
+                         zsh
+                         zsh-syntax-highlighting
+                         zsh-autosuggestions))
 
-                               ;; Languages
-                               rust
-                               node
-                               clang-toolchain
-                               nix
-                               nixfmt
-                               python
-                               ghc
-                               hoogle
-                               racket
-
-                               ;; Emacs
-                               emacs
-                               emacs-all-the-icons
-                               pandoc
-                               python-isort
-                               emacs-py-isort
-                               ;; TODO: The rust analyzer package is broken as of 2021-12-25
-                               ;;rust-analyzer
-                               shellcheck
-
-                               ;; Browsers
-                               ungoogled-chromium
-                               firefox
-
-                               ;; Productivity
-                               speedcrunch
-                               libreoffice
-
-                               ;; Utilities
-                               gparted
-
-                               ;; Fonts
-                               font-hack
-                               font-adobe-source-han-sans
-
-                               ;; Gnome
-                               gnome-icon-theme
-                               adwaita-icon-theme))
-
-(define-public %home-services
+(define %shell-services
   (list
-   (service home-bash-service-type
-            (home-bash-configuration
-             (guix-defaults? #t)))
+   (service home-zsh-service-type
+            (home-zsh-configuration))
+
+   (simple-service 'zsh-shell-service
+                   home-environment-variables-service-type
+                   `(("SHELL" . ,(file-append zsh "/bin/zsh"))))
 
    (simple-service 'dotfile-script-service
                    home-environment-variables-service-type
-                   `(("PATH" . "~/.dotfiles/bin:$PATH")))
+                   `(("PATH" . "~/.dotfiles/bin:$PATH")))))
 
+(define-public %shell-home-module
+  (make-home-module %shell-packages %shell-services))
+#+end_src
+*** Utilities
+#+begin_src scheme
+(use-modules (gnu packages admin)
+             (gnu packages code)
+             (gnu packages rust-apps)
+             (gnu packages terminals))
+
+(define-public %utilities-home-module
+  (make-home-module (list
+                     ;; CLI tools
+                     htop
+                     cloc
+                     thefuck
+                     ripgrep
+                     fzf)
+                    '()))
+#+end_src
+*** Emacs
+#+begin_src scheme
+(use-modules (gnu packages emacs)
+             (gnu packages emacs-xyz)
+             (gnu packages haskell-xyz)
+             (gnu packages haskell-apps)
+             (gnu packages python-xyz))
+
+(define-public %emacs-packages (list
+                                emacs
+                                ;; Doom extension dependencies
+                                pandoc
+                                python-isort
+                                emacs-py-isort
+                                nixfmt
+                                ;; TODO: The rust analyzer package is broken as of 2021-12-25
+                                ;; rust-analyzer
+                                shellcheck))
+
+(define-public %emacs-services
+  (list
+   ;; We're temporarily using doom-emacs until we roll a custom config.
+   ;; Doom sync/init currently must be run manually.
    (simple-service 'doom-config-service
                    home-files-service-type
                    (list `("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
                          `("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
-                         `("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))
+                         `("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))))
 
-   (simple-service 'doom-sync-service
-                   home-run-on-change-service-type
-                   (list `("files/doom.d/" ,(system* "~/.emacs.d/bin/doom" "sync"))))))
+(define-public %emacs-home-module
+  (make-home-module %emacs-packages %emacs-services))
+#+end_src
+**** init.el
+#+begin_src scheme :tangle doom-emacs/init.el
+;;; init.el -*- lexical-binding: t; -*-
+
+;; This file controls what Doom modules are enabled and what order they load
+;; in. Remember to run 'doom sync' after modifying it!
+
+;; NOTE Press 'SPC h d h' (or 'C-h d h' for non-vim users) to access Doom's
+;;      documentation. There you'll find a "Module Index" link where you'll find
+;;      a comprehensive list of Doom's modules and what flags they support.
+
+;; NOTE Move your cursor over a module's name (or its flags) and press 'K' (or
+;;      'C-c c k' for non-vim users) to view its documentation. This works on
+;;      flags as well (those symbols that start with a plus).
+;;
+;;      Alternatively, press 'gd' (or 'C-c c d') on a module to browse its
+;;      directory (for easy access to its source code).
+
+(doom! :input
+       ;;chinese
+       ;;japanese
+       ;;layout            ; auie,ctsrnm is the superior home row
+
+       :completion
+       company           ; the ultimate code completion backend
+       ;;helm              ; the *other* search engine for love and life
+       ;;ido               ; the other *other* search engine...
+       ;;ivy               ; a search engine for love and life
+       vertico           ; the search engine of the future
+
+       :ui
+       ;;deft              ; notational velocity for Emacs
+       doom              ; what makes DOOM look the way it does
+       doom-dashboard    ; a nifty splash screen for Emacs
+       doom-quit         ; DOOM quit-message prompts when you quit Emacs
+       ;;(emoji +unicode)  ; 🙂
+       hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
+       ;;hydra
+       ;;indent-guides     ; highlighted indent columns
+       ligatures         ; ligatures and symbols to make your code pretty again
+       ;;minimap           ; show a map of the code on the side
+       modeline          ; snazzy, Atom-inspired modeline, plus API
+       ;;nav-flash         ; blink cursor line after big motions
+       ;;neotree           ; a project drawer, like NERDTree for vim
+       ophints           ; highlight the region an operation acts on
+       (popup +defaults)   ; tame sudden yet inevitable temporary windows
+       tabs              ; a tab bar for Emacs
+       treemacs          ; a project drawer, like neotree but cooler
+       ;;unicode           ; extended unicode support for various languages
+       vc-gutter         ; vcs diff in the fringe
+       vi-tilde-fringe   ; fringe tildes to mark beyond EOB
+       ;;window-select     ; visually switch windows
+       workspaces        ; tab emulation, persistence & separate workspaces
+       ;;zen               ; distraction-free coding or writing
+
+       :editor
+       (evil +everywhere); come to the dark side, we have cookies
+       file-templates    ; auto-snippets for empty files
+       fold              ; (nigh) universal code folding
+       (format +onsave)  ; automated prettiness
+       ;;god               ; run Emacs commands without modifier keys
+       ;;lispy             ; vim for lisp, for people who don't like vim
+       ;;multiple-cursors  ; editing in many places at once
+       ;;objed             ; text object editing for the innocent
+       ;;parinfer          ; turn lisp into python, sort of
+       ;;rotate-text       ; cycle region at point between text candidates
+       snippets          ; my elves. They type so I don't have to
+       ;;word-wrap         ; soft wrapping with language-aware indent
+
+       :emacs
+       dired             ; making dired pretty [functional]
+       electric          ; smarter, keyword-based electric-indent
+       ;;ibuffer         ; interactive buffer management
+       undo              ; persistent, smarter undo for your inevitable mistakes
+       vc                ; version-control and Emacs, sitting in a tree
+
+       :term
+       eshell            ; the elisp shell that works everywhere
+       ;;shell             ; simple shell REPL for Emacs
+       term              ; basic terminal emulator for Emacs
+       ;;vterm             ; the best terminal emulation in Emacs
+
+       :checkers
+       syntax              ; tasing you for every semicolon you forget
+       (spell +flyspell) ; tasing you for misspelling mispelling
+       grammar           ; tasing grammar mistake every you make
+
+       :tools
+       ;;ansible
+       ;;debugger          ; FIXME stepping through code, to help you add bugs
+       ;;direnv
+       ;;docker
+       ;;editorconfig      ; let someone else argue about tabs vs spaces
+       ;;ein               ; tame Jupyter notebooks with emacs
+       (eval +overlay)     ; run code, run (also, repls)
+       ;;gist              ; interacting with github gists
+       lookup              ; navigate your code and its documentation
+       lsp               ; M-x vscode
+       magit             ; a git porcelain for Emacs
+       ;;make              ; run make tasks from Emacs
+       ;;pass              ; password manager for nerds
+       pdf               ; pdf enhancements
+       ;;prodigy           ; FIXME managing external services & code builders
+       ;;rgb               ; creating color strings
+       ;;taskrunner        ; taskrunner for all your projects
+       ;;terraform         ; infrastructure as code
+       ;;tmux              ; an API for interacting with tmux
+       ;;upload            ; map local to remote projects via ssh/ftp
+
+       :os
+       (:if IS-MAC macos)  ; improve compatibility with macOS
+       ;;tty               ; improve the terminal Emacs experience
+
+       :lang
+       ;;agda              ; types of types of types of types...
+       ;;beancount         ; mind the GAAP
+       (cc +lsp)                ; C > C++ == 1
+       ;;clojure           ; java with a lisp
+       ;;common-lisp       ; if you've seen one lisp, you've seen them all
+       ;;coq               ; proofs-as-programs
+       ;;crystal           ; ruby at the speed of c
+       ;;csharp            ; unity, .NET, and mono shenanigans
+       ;;data              ; config/data formats
+       ;;(dart +flutter)   ; paint ui and not much else
+       ;;dhall
+       ;;elixir            ; erlang done right
+       ;;elm               ; care for a cup of TEA?
+       emacs-lisp        ; drown in parentheses
+       ;;erlang            ; an elegant language for a more civilized age
+       ;;ess               ; emacs speaks statistics
+       ;;factor
+       ;;faust             ; dsp, but you get to keep your soul
+       ;;fsharp            ; ML stands for Microsoft's Language
+       ;;fstar             ; (dependent) types and (monadic) effects and Z3
+       ;;gdscript          ; the language you waited for
+       ;;(go +lsp)         ; the hipster dialect
+       (haskell +lsp)    ; a language that's lazier than I am
+       ;;hy                ; readability of scheme w/ speed of python
+       ;;idris             ; a language you can depend on
+       ;;json              ; At least it ain't XML
+       ;;(java +meghanada) ; the poster child for carpal tunnel syndrome
+       javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       ;;julia             ; a better, faster MATLAB
+       ;;kotlin            ; a better, slicker Java(Script)
+       latex             ; writing papers in Emacs has never been so fun
+       ;;lean              ; for folks with too much to prove
+       ;;ledger            ; be audit you can be
+       ;;lua               ; one-based indices? one-based indices
+       markdown          ; writing docs for people to ignore
+       ;;nim               ; python + lisp at the speed of c
+       ;;nix               ; I hereby declare "nix geht mehr!"
+       ;;ocaml             ; an objective camel
+       org               ; organize your plain life in plain text
+       ;;php               ; perl's insecure younger brother
+       ;;plantuml          ; diagrams for confusing people more
+       ;;purescript        ; javascript, but functional
+       (python +lsp)            ; beautiful is better than ugly
+       ;;qt                ; the 'cutest' gui framework ever
+       racket            ; a DSL for DSLs
+       ;;raku              ; the artist formerly known as perl6
+       ;;rest              ; Emacs as a REST client
+       ;;rst               ; ReST in peace
+       ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
+       (rust +lsp)              ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
+       ;;scala             ; java, but good
+       (scheme +guile)   ; a fully conniving family of lisps
+       sh                ; she sells {ba,z,fi}sh shells on the C xor
+       ;;sml
+       ;;solidity          ; do you need a blockchain? No.
+       ;;swift             ; who asked for emoji variables?
+       ;;terra             ; Earth and Moon in alignment for performance.
+       web               ; the tubes
+       yaml              ; JSON, but readable
+       ;;zig               ; C, but simpler
+
+       :email
+       ;;(mu4e +org +gmail)
+       ;;notmuch
+       ;;(wanderlust +gmail)
+
+       :app
+       ;;calendar
+       ;;emms
+       ;;everywhere        ; *leave* Emacs!? You must be joking
+       ;;irc               ; how neckbeards socialize
+       ;;(rss +org)        ; emacs as an RSS reader
+       ;;twitter           ; twitter client https://twitter.com/vnought
+
+       :config
+       ;;literate
+       (default +bindings +smartparens))
+#+end_src
+**** config.el
+#+begin_src scheme :tangle doom-emacs/config.el
+;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
+
+;; Place your private configuration here! Remember, you do not need to run 'doom
+;; sync' after modifying this file!
+
+
+;; Some functionality uses this to identify you, e.g. GPG configuration, email
+;; clients, file templates and snippets.
+(setq user-full-name "Dominic Martinez"
+      user-mail-address "martinez.dominic147@gmail.com")
+
+;; Doom exposes five (optional) variables for controlling fonts in Doom. Here
+;; are the three important ones:
+;;
+;; + `doom-font'
+;; + `doom-variable-pitch-font'
+;; + `doom-big-font' -- used for `doom-big-font-mode'; use this for
+;;   presentations or streaming.
+;;
+;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
+;; font string. You generally only need these two:
+;; (setq doom-font (font-spec :family "monospace" :size 12 :weight 'semi-light)
+;;       doom-variable-pitch-font (font-spec :family "sans" :size 13))
+(setq doom-font (font-spec :family "Hack"))
+
+;; There are two ways to load a theme. Both assume the theme is installed and
+;; available. You can either set `doom-theme' or manually load a theme with the
+;; `load-theme' function. This is the default:
+(setq doom-theme 'doom-monokai-pro)
+
+;; If you use `org' and don't want your org files in the default location below,
+;; change `org-directory'. It must be set before org loads!
+(setq org-directory "~/org/")
+
+;; This determines the style of line numbers in effect. If set to `nil', line
+;; numbers are disabled. For relative line numbers, set this to `relative'.
+(setq display-line-numbers-type 'relative)
+
+;; Continuously scroll PDFs
+(setq doc-view-continuous t)
+
+;; Here are some additional functions/macros that could help you configure Doom:
+;;
+;; - `load!' for loading external *.el files relative to this one
+;; - `use-package!' for configuring packages
+;; - `after!' for running code after a package has loaded
+;; - `add-load-path!' for adding directories to the `load-path', relative to
+;;   this file. Emacs searches the `load-path' when you load packages with
+;;   `require' or `use-package'.
+;; - `map!' for binding new keys
+;;
+;; To get information about any of these functions/macros, move the cursor over
+;; the highlighted symbol at press 'K' (non-evil users must press 'C-c c k').
+;; This will open documentation for it, including demos of how they are used.
+;;
+;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
+;; they are implemented.
+#+end_src
+**** packages.el
+#+begin_src scheme :tangle doom-emacs/packages.el
+;; -*- no-byte-compile: t; -*-
+;;; $DOOMDIR/packages.el
+
+;; To install a package with Doom you must declare them here and run 'doom sync'
+;; on the command line, then restart Emacs for the changes to take effect -- or
+;; use 'M-x doom/reload'.
+
+
+;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
+;(package! some-package)
+
+;; To install a package directly from a remote git repo, you must specify a
+;; `:recipe'. You'll find documentation on what `:recipe' accepts here:
+;; https://github.com/raxod502/straight.el#the-recipe-format
+;(package! another-package
+;  :recipe (:host github :repo "username/repo"))
+
+;; If the package you are trying to install does not contain a PACKAGENAME.el
+;; file, or is located in a subdirectory of the repo, you'll need to specify
+;; `:files' in the `:recipe':
+;(package! this-package
+;  :recipe (:host github :repo "username/repo"
+;           :files ("some-file.el" "src/lisp/*.el")))
+
+;; If you'd like to disable a package included with Doom, you can do so here
+;; with the `:disable' property:
+;(package! builtin-package :disable t)
+
+;; You can override the recipe of a built in package without having to specify
+;; all the properties for `:recipe'. These will inherit the rest of its recipe
+;; from Doom or MELPA/ELPA/Emacsmirror:
+;(package! builtin-package :recipe (:nonrecursive t))
+;(package! builtin-package-2 :recipe (:repo "myfork/package"))
+
+;; Specify a `:branch' to install a package from a particular branch or tag.
+;; This is required for some packages whose default branch isn't 'master' (which
+;; our package manager can't deal with; see raxod502/straight.el#279)
+;(package! builtin-package :recipe (:branch "develop"))
+
+;; Use `:pin' to specify a particular commit to install.
+;(package! builtin-package :pin "1a2b3c4d5e")
+
+
+;; Doom's packages are pinned to a specific commit and updated from release to
+;; release. The `unpin!' macro allows you to unpin single packages...
+;(unpin! pinned-package)
+;; ...or multiple packages
+;(unpin! pinned-package another-pinned-package)
+;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
+;(unpin! t)
+#+end_src
+*** Programming Languages
+**** Rust
+#+begin_src scheme
+(use-modules (gnu packages rust))
+
+(define-public %rust-home-module
+  (make-home-module (list rust) '()))
+#+end_src
+**** Node
+#+begin_src scheme
+(use-modules (gnu packages node))
+
+(define-public %node-home-module
+  (make-home-module (list node) '()))
+#+end_src
+**** C/C++
+#+begin_src scheme
+(use-modules (gnu packages llvm))
+
+(define-public %c-home-module
+  (make-home-module (list clang-toolchain) '()))
+#+end_src
+**** Python
+#+begin_src scheme
+(use-modules (gnu packages python))
+
+(define-public %python-home-module
+  (make-home-module (list python) '()))
+#+end_src
+**** Haskell
+#+begin_src scheme
+(use-modules (gnu packages haskell)
+             (gnu packages haskell-apps))
+
+(define-public %haskell-home-module
+  (make-home-module (list ghc hoogle) '()))
+#+end_src
+**** Racket
+#+begin_src scheme
+(use-modules (gnu packages racket))
+
+(define-public %racket-home-module
+  (make-home-module (list racket) '()))
+#+end_src
+**** Full Language Configuration
+#+begin_src scheme
+(define-public %full-languages-home-module
+  (append-home-modules (list
+                        %rust-home-module
+                        %node-home-module
+                        %c-home-module
+                        %python-home-module
+                        %haskell-home-module
+                        %racket-home-module)))
+#+end_src
+*** Applications
+#+begin_src scheme
+(use-modules (nongnu packages mozilla)
+             (gnu packages maths)
+             (gnu packages libreoffice)
+             (gnu packages inkscape)
+             (gnu packages gimp))
+
+(define-public %applications-home-module
+  (make-home-module (list
+                     firefox
+                     speedcrunch
+                     libreoffice
+                     inkscape
+                     gimp)
+                    '()))
+#+end_src
+*** Fonts
+#+begin_src scheme
+(use-modules (gnu packages fonts)
+             (gnu packages gnome))
+
+(define-public %fonts-home-module
+  (make-home-module (list
+                     font-hack
+                     font-adobe-source-han-sans
+                     gnome-icon-theme
+                     adwaita-icon-theme)
+                    '()))
+#+end_src
+*** Japanese
+**** Japanese Input
+IBus is being used since guix currently doesn't package any Japanese input extensions for fcitx, but a move to fcitx should be made when possible.
+#+begin_src scheme
+(use-modules (gnu packages ibus))
+
+(define-public %jpn-input-home-module
+  (make-home-module (list
+                     ibus
+                     ibus-anthy)
+                    '()))
+#+end_src
+**** Study Setup
+#+begin_src scheme
+(use-modules (gnu packages education))
+
+;; TODO: Can we set Anki up declaratively?
+(define-public %jpn-study-home-module
+  (make-home-module (list
+                     anki)
+                    '()))
+#+end_src
+**** Full Japanese Configuration
+#+begin_src scheme
+(define-public %full-jpn-home-module
+  (append-home-modules (list
+                        %jpn-input-home-module
+                        %jpn-study-home-module)))
+#+end_src
+*** Full Configuration
+#+begin_src scheme
+(define-public %full-home-module
+  (append-home-modules (list
+                        %shell-home-module
+                        %utilities-home-module
+                        %emacs-home-module
+                        %full-languages-home-module
+                        %applications-home-module
+                        %fonts-home-module
+                        %full-jpn-home-module)))
+
+(define-public %home-packages (home-module-packages %full-home-module))
+(define-public %home-services (home-module-services %full-home-module))
 #+end_src
 * Machine Configurations
 ** XPS 9700
