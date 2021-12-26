@@ -72,7 +72,8 @@
              (gnu packages emacs-xyz)
              (gnu packages haskell-xyz)
              (gnu packages haskell-apps)
-             (gnu packages python-xyz))
+             (gnu packages python-xyz)
+             (gnu packages aspell))
 
 (define-public %emacs-packages (list
                                 emacs
@@ -83,7 +84,8 @@
                                 nixfmt
                                 ;; TODO: The rust analyzer package is broken as of 2021-12-25
                                 ;; rust-analyzer
-                                shellcheck))
+                                shellcheck
+                                ispell))
 
 (define-public %emacs-services
   (list
