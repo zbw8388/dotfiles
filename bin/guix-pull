@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+function script_init {
+    pushd ~/.dotfiles > /dev/null
+}
+
+function script_cleanup {
+    popd > /dev/null
+}
+
+function machine_script_init {
+    MACHINE=${1:-$DOTFILES_MACHINE}
+    if [[ -z $MACHINE ]]; then
+        echo "Error: machine could not be detected"
+        script_cleanup
+        exit 1
+    fi
+    script_init
+}
+
+script_init
+
+guix pull -C channels.scm
+
+script_cleanup

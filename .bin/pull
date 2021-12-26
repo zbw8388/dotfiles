@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-guix pull -C ~/.dotfiles/channels.scm
-

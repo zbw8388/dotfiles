@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+function script_init {
+    pushd ~/.dotfiles > /dev/null
+}
+
+function script_cleanup {
+    popd > /dev/null
+}
+
+function machine_script_init {
+    MACHINE=${1:-$DOTFILES_MACHINE}
+    if [[ -z $MACHINE ]]; then
+        echo "Error: machine could not be detected"
+        script_cleanup
+        exit 1
+    fi
+    script_init
+}
+
+machine_script_init
+
+sudo guix system -L . reconfigure machines/${MACHINE}-system.scm
+
+sudo cat << EOF >> /boot/grub/grub.cfg
+menuentry "Windows" {
+  insmod part_gpt
+  insmod fat
+  insmod chain
+  search --label --set=root BOOT
+  chainloader (\$root)/EFI/Microsoft/Boot/bootmgfw.efi
+}
+EOF
+
+script_cleanup

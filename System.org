@@ -1,0 +1,333 @@
+#+TITLE: System
+
+* Universal Configuration
+** Base System Configuration
+:PROPERTIES:
+:header-args: :tangle base/system.scm
+:END:
+*** Utilities/Modules
+#+begin_src scheme
+(define-module (base system))
+
+(use-modules (gnu)
+             (gnu system nss)
+             (gnu packages gnome)
+             (gnu packages xorg)
+             (gnu packages linux)
+             (nongnu packages linux)
+             (nongnu system linux-initrd)
+
+             ;; Packages
+             (gnu packages version-control)
+             (gnu packages vim)
+             (gnu packages file-systems)
+             (gnu packages disk)
+             (gnu packages ssh)
+             (gnu packages tls)
+             (gnu packages file)
+             (gnu packages ncurses))
+#+end_src
+*** Base Operating System
+#+begin_src scheme
+(use-service-modules cups desktop networking xorg)
+(use-package-modules certs gnome)
+
+(define %colemak-layout (keyboard-layout "us" "colemak_dh"))
+
+(define-public %base-operating-system
+  (operating-system
+   (host-name "guix")
+   (timezone "America/New_York")
+   (locale "en_US.utf8")
+
+   ;; Use non-free linux kernel
+   (kernel linux)
+   (initrd microcode-initrd)
+   (firmware (list linux-firmware))
+
+   ;; Use Colemak DH layout
+   (keyboard-layout %colemak-layout)
+
+   ;; Create personal user account
+   (users (cons (user-account
+                 (name "dominic")
+                 (comment "Dominic Martinez")
+                 ;; create an initial password
+                 ;; change this with passwd
+                 (password (crypt "pass" "$6$abc"))
+                 (group "users")
+                 (supplementary-groups '("wheel" "netdev"
+                                         "audio" "video")))
+                %base-user-accounts))
+
+   ;; Use the UEFI variant of GRUB
+   (bootloader (bootloader-configuration
+                (bootloader grub-efi-bootloader)
+                (targets (list "/boot/efi"))))
+
+   (file-systems (append
+                  (list (file-system
+                         ;; Guix root partition
+                         (device (file-system-label "guix"))
+                         (mount-point "/")
+                         (type "btrfs"))
+                        (file-system
+                         ;; Boot partition
+                         (device (file-system-label "BOOT"))
+                         (mount-point "/boot/efi")
+                         (type "vfat")))
+                  %base-file-systems))
+
+   (name-service-switch %mdns-host-lookup-nss)))
+#+end_src
+*** System Packages & Services
+#+begin_src scheme
+(define-public %system-packages (cons*
+                                 ;; Essentials
+                                 git
+                                 file
+                                 openssl
+                                 openssh
+                                 kmod
+                                 vim
+                                 xterm
+                                 gparted
+                                 ncurses
+
+                                 ;; File system utils
+                                 btrfs-progs
+                                 ntfs-3g
+                                 exfat-utils
+                                 fuse-exfat
+                                 dosfstools
+
+                                 ;; Gnome
+                                 gnome-tweaks
+                                 gnome-themes-extra
+                                 gnome-icon-theme
+                                 adwaita-icon-theme
+
+                                 ;; HTTPS access
+                                 nss-certs
+
+                                 ;; User mounts
+                                 gvfs
+
+                                 %base-packages))
+
+(define-public %system-services (cons*
+                                 ;; Activate Gnome desktop
+                                 (service gnome-desktop-service-type)
+
+                                 ;; Xorg keyboard layout
+                                 (set-xorg-configuration
+                                  (xorg-configuration
+                                   (keyboard-layout %colemak-layout)))
+
+                                 %desktop-services))
+#+end_src
+** Base Home Configuration
+:PROPERTIES:
+:header-args: :tangle base/home.scm
+:END:
+*** Utilities/Modules
+#+begin_src scheme
+(define-module (base home))
+
+(use-modules (gnu home)
+             (gnu home services)
+             (gnu home services shells)
+             (gnu services)
+             (guix gexp)
+             (gnu packages admin)
+             (gnu packages code)
+             (gnu packages chromium)
+             (gnu packages disk)
+             (gnu packages emacs)
+             (gnu packages emacs-xyz)
+             (gnu packages file)
+             (gnu packages fonts)
+             (gnu packages gnome)
+             (gnu packages libreoffice)
+             (gnu packages llvm)
+             (gnu packages maths)
+             (gnu packages node)
+             (gnu packages rust)
+             (gnu packages rust-apps)
+             (gnu packages ssh)
+             (gnu packages terminals)
+             (gnu packages tls)
+             (gnu packages package-management)
+             (gnu packages haskell-apps)
+             (gnu packages python)
+             (gnu packages python-xyz)
+             (gnu packages haskell)
+             (gnu packages haskell-xyz)
+             (gnu packages racket)
+             ;; Non-free packages
+             (nongnu packages mozilla))
+#+end_src
+*** Home Packages & Services
+#+begin_src scheme
+(define-public (make-machine-service machine)
+  (simple-service 'dotfile-machine-name-environment-service
+                  home-environment-variables-service-type
+                  `(("DOTFILES_MACHINE" . ,machine))))
+
+(define-public %home-packages (list
+                               ;; CLI tools
+                               htop
+                               cloc
+                               thefuck
+                               ripgrep
+                               fzf
+
+                               ;; Languages
+                               rust
+                               node
+                               clang-toolchain
+                               nix
+                               nixfmt
+                               python
+                               ghc
+                               hoogle
+                               racket
+
+                               ;; Emacs
+                               emacs
+                               emacs-all-the-icons
+                               pandoc
+                               python-isort
+                               emacs-py-isort
+                               ;; TODO: The rust analyzer package is broken as of 2021-12-25
+                               ;;rust-analyzer
+                               shellcheck
+
+                               ;; Browsers
+                               ungoogled-chromium
+                               firefox
+
+                               ;; Productivity
+                               speedcrunch
+                               libreoffice
+
+                               ;; Utilities
+                               gparted
+
+                               ;; Fonts
+                               font-hack
+                               font-adobe-source-han-sans
+
+                               ;; Gnome
+                               gnome-icon-theme
+                               adwaita-icon-theme))
+
+(define-public %home-services
+  (list
+   (service home-bash-service-type
+            (home-bash-configuration
+             (guix-defaults? #t)))
+
+   (simple-service 'dotfile-script-service
+                   home-environment-variables-service-type
+                   `(("PATH" . "~/.dotfiles/bin:$PATH")))
+
+   (simple-service 'doom-config-service
+                   home-files-service-type
+                   (list `("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
+                         `("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
+                         `("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))
+
+   (simple-service 'doom-sync-service
+                   home-run-on-change-service-type
+                   (list `("files/doom.d/" ,(system* "~/.emacs.d/bin/doom" "sync"))))))
+#+end_src
+* Machine Configurations
+** XPS 9700
+*** System
+#+begin_src scheme :tangle machines/xps-9700-system.scm
+(use-modules (base system))
+
+(operating-system
+ (inherit %base-operating-system)
+ (packages %system-packages)
+ (services %system-services))
+#+end_src
+*** Home
+#+begin_src scheme :tangle machines/xps-9700-home.scm
+(use-modules (base home))
+
+(home-environment
+ (packages %home-packages)
+ (services (cons*
+            (make-machine-service "xps-9700")
+            %home-services)))
+#+end_src
+* Scripts
+The following shebang is necessary in bash scripts since guix does not have bash in the normal FHS location. We also grab the machine name either from the argument or the env variable.
+#+name: script-utils
+#+begin_src shell
+function script_init {
+    pushd ~/.dotfiles > /dev/null
+}
+
+function script_cleanup {
+    popd > /dev/null
+}
+
+function machine_script_init {
+    MACHINE=${1:-$DOTFILES_MACHINE}
+    if [[ -z $MACHINE ]]; then
+        echo "Error: machine could not be detected"
+        script_cleanup
+        exit 1
+    fi
+    script_init
+}
+#+end_src
+** Reconfigure System
+#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-system
+<<script-utils>>
+#+end_src
+
+#+begin_src sh :tangle bin/reconfigure-system
+machine_script_init
+
+sudo guix system -L . reconfigure machines/${MACHINE}-system.scm
+
+sudo cat << EOF >> /boot/grub/grub.cfg
+menuentry "Windows" {
+  insmod part_gpt
+  insmod fat
+  insmod chain
+  search --label --set=root BOOT
+  chainloader (\$root)/EFI/Microsoft/Boot/bootmgfw.efi
+}
+EOF
+
+script_cleanup
+#+end_src
+** Reconfigure Home
+#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-home
+<<script-utils>>
+#+end_src
+
+#+begin_src sh :tangle bin/reconfigure-home
+machine_script_init
+
+guix home -L . reconfigure machines/${MACHINE}-home.scm
+
+script_cleanup
+#+end_src
+** Pull Guix Channels
+#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/guix-pull
+<<script-utils>>
+#+end_src
+
+#+begin_src sh :tangle bin/guix-pull
+script_init
+
+guix pull -C channels.scm
+
+script_cleanup
+#+end_src
