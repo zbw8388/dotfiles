@@ -16,9 +16,10 @@
              (gnu packages ssh)
              (gnu packages tls)
              (gnu packages file)
-             (gnu packages ncurses))
+             (gnu packages ncurses)
+             (gnu packages package-management))
 
-(use-service-modules cups desktop networking xorg)
+(use-service-modules cups desktop networking xorg nix)
 (use-package-modules certs gnome)
 
 (define %colemak-layout (keyboard-layout "us" "colemak_dh"))
@@ -100,11 +101,16 @@
                                  ;; User mounts
                                  gvfs
 
+                                 nix
+
                                  %base-packages))
 
 (define-public %system-services (cons*
                                  ;; Activate Gnome desktop
                                  (service gnome-desktop-service-type)
+
+                                 ;; Nix daemon
+                                 (service nix-service-type)
 
                                  ;; Xorg keyboard layout
                                  (set-xorg-configuration

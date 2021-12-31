@@ -40,7 +40,9 @@
 (define %shell-services
   (list
    (service home-zsh-service-type
-            (home-zsh-configuration))
+            (home-zsh-configuration
+             (zshrc (list (plain-file "nix-env"
+                                      "source /run/current-system/profile/etc/profile.d/nix.sh")))))
 
    (simple-service 'zsh-shell-service
                    home-environment-variables-service-type
@@ -48,7 +50,7 @@
 
    (simple-service 'dotfile-script-service
                    home-environment-variables-service-type
-                   `(("PATH" . "~/.dotfiles/bin:$PATH")))))
+                   `(("PATH" . "$PATH:$HOME/.dotfiles/bin")))))
 
 (define-public %shell-home-module
   (make-home-module %shell-packages %shell-services))
@@ -93,9 +95,9 @@
    ;; Doom sync/init currently must be run manually.
    (simple-service 'doom-config-service
                    home-files-service-type
-                   (list `("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
-                         `("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
-                         `("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))))
+                   `(("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
+                     ("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
+                     ("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))))
 
 (define-public %emacs-home-module
   (make-home-module %emacs-packages %emacs-services))
@@ -140,11 +142,29 @@
                         %haskell-home-module
                         %racket-home-module)))
 
+(define %nix-services
+  (list
+   (simple-service 'nix-unfree-config-service
+                   home-files-service-type
+                   `(("config/nixpkgs/config.nix" ,(plain-file "nix-unfree-config"
+                                                                "{ allowUnfree = true; }"))))
+
+   (simple-service 'nix-env-service
+                   home-environment-variables-service-type
+                   `(("PATH" . "$PATH:$HOME/.nix-profile/bin")
+                     ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.nix-profile/share")
+                     ("XDG_CONFIG_DIRS" . "$XDG_CONFIG_DIRS:$HOME/.nix-profile/etc/xdg")))))
+
+(define-public %nix-home-module
+  (make-home-module '() %nix-services))
+
 (use-modules (nongnu packages mozilla)
              (gnu packages maths)
              (gnu packages libreoffice)
              (gnu packages inkscape)
-             (gnu packages gimp))
+             (gnu packages gimp)
+             (gnu packages video)
+             (gnu packages audio))
 
 (define-public %applications-home-module
   (make-home-module (list
@@ -152,7 +172,11 @@
                      speedcrunch
                      libreoffice
                      inkscape
-                     gimp)
+                     gimp
+                     vlc
+                     handbrake
+                     ffmpeg
+                     audacity)
                     '()))
 
 (use-modules (gnu packages fonts)
@@ -168,11 +192,19 @@
 
 (use-modules (gnu packages ibus))
 
+(define %jpn-input-packages (list
+                             ibus
+                             ibus-anthy))
+
+(define %jpn-input-services
+  (list
+   (simple-service 'jpn-input-service
+                   home-environment-variables-service-type
+                   `(("GUIX_GTK2_IM_MODULE_FILE" . "$HOME/.guix-home/profile/lib/gtk-2.0/2.10.0/immodules-gtk2.cache")
+                     ("GUIX_GTK3_IM_MODULE_FILE" . "$HOME/.guix-home/profile/lib/gtk-3.0/3.0.0/immodules-gtk3.cache")))))
+
 (define-public %jpn-input-home-module
-  (make-home-module (list
-                     ibus
-                     ibus-anthy)
-                    '()))
+  (make-home-module %jpn-input-packages %jpn-input-services))
 
 (use-modules (gnu packages education))
 
@@ -193,6 +225,7 @@
                         %utilities-home-module
                         %emacs-home-module
                         %full-languages-home-module
+                        %nix-home-module
                         %applications-home-module
                         %fonts-home-module
                         %full-jpn-home-module)))

@@ -25,11 +25,12 @@
              (gnu packages ssh)
              (gnu packages tls)
              (gnu packages file)
-             (gnu packages ncurses))
+             (gnu packages ncurses)
+             (gnu packages package-management))
 #+end_src
 *** Base Operating System
 #+begin_src scheme
-(use-service-modules cups desktop networking xorg)
+(use-service-modules cups desktop networking xorg nix)
 (use-package-modules certs gnome)
 
 (define %colemak-layout (keyboard-layout "us" "colemak_dh"))
@@ -113,11 +114,16 @@
                                  ;; User mounts
                                  gvfs
 
+                                 nix
+
                                  %base-packages))
 
 (define-public %system-services (cons*
                                  ;; Activate Gnome desktop
                                  (service gnome-desktop-service-type)
+
+                                 ;; Nix daemon
+                                 (service nix-service-type)
 
                                  ;; Xorg keyboard layout
                                  (set-xorg-configuration
@@ -176,7 +182,9 @@
 (define %shell-services
   (list
    (service home-zsh-service-type
-            (home-zsh-configuration))
+            (home-zsh-configuration
+             (zshrc (list (plain-file "nix-env"
+                                      "source /run/current-system/profile/etc/profile.d/nix.sh")))))
 
    (simple-service 'zsh-shell-service
                    home-environment-variables-service-type
@@ -184,7 +192,7 @@
 
    (simple-service 'dotfile-script-service
                    home-environment-variables-service-type
-                   `(("PATH" . "~/.dotfiles/bin:$PATH")))))
+                   `(("PATH" . "$PATH:$HOME/.dotfiles/bin")))))
 
 (define-public %shell-home-module
   (make-home-module %shell-packages %shell-services))
@@ -234,9 +242,9 @@
    ;; Doom sync/init currently must be run manually.
    (simple-service 'doom-config-service
                    home-files-service-type
-                   (list `("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
-                         `("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
-                         `("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))))
+                   `(("doom.d/init.el" ,(local-file "../doom-emacs/init.el"))
+                     ("doom.d/config.el" ,(local-file "../doom-emacs/config.el"))
+                     ("doom.d/packages.el" ,(local-file "../doom-emacs/packages.el"))))))
 
 (define-public %emacs-home-module
   (make-home-module %emacs-packages %emacs-services))
@@ -601,13 +609,38 @@
                         %haskell-home-module
                         %racket-home-module)))
 #+end_src
+*** Nix
+Many useful applications are not available in the Guix package repository due to their licensing requirements. Until I learn to create Guix packages, the simplest solution is to use Nix packages. In the current setup, all Nix packages will be tangled together in the [[Reconfigure Home]] script. Nix is installed system-wide to accomadate it's daemon service. Nix shell setup is done in [[Shell]].
+
+TODO: Use a nicer, Lisp solution to managing Nix packages.
+
+The following Nix config allows unfree packages and sets variables for path/desktop entries
+#+begin_src scheme
+(define %nix-services
+  (list
+   (simple-service 'nix-unfree-config-service
+                   home-files-service-type
+                   `(("config/nixpkgs/config.nix" ,(plain-file "nix-unfree-config"
+                                                                "{ allowUnfree = true; }"))))
+
+   (simple-service 'nix-env-service
+                   home-environment-variables-service-type
+                   `(("PATH" . "$PATH:$HOME/.nix-profile/bin")
+                     ("XDG_DATA_DIRS" . "$XDG_DATA_DIRS:$HOME/.nix-profile/share")
+                     ("XDG_CONFIG_DIRS" . "$XDG_CONFIG_DIRS:$HOME/.nix-profile/etc/xdg")))))
+
+(define-public %nix-home-module
+  (make-home-module '() %nix-services))
+#+end_src
 *** Applications
 #+begin_src scheme
 (use-modules (nongnu packages mozilla)
              (gnu packages maths)
              (gnu packages libreoffice)
              (gnu packages inkscape)
-             (gnu packages gimp))
+             (gnu packages gimp)
+             (gnu packages video)
+             (gnu packages audio))
 
 (define-public %applications-home-module
   (make-home-module (list
@@ -615,8 +648,17 @@
                      speedcrunch
                      libreoffice
                      inkscape
-                     gimp)
+                     gimp
+                     vlc
+                     handbrake
+                     ffmpeg
+                     audacity)
                     '()))
+#+end_src
+
+Nix applications:
+#+begin_src shell :noweb-ref nix-packages :noweb-sep " " :tangle no
+nixpkgs.discord nixpkgs.slack nixpkgs.zoom-us nixpkgs.pdfmixtool nixpkgs._1password-gui nixpkgs.spotify
 #+end_src
 *** Fonts
 #+begin_src scheme
@@ -633,15 +675,24 @@
 #+end_src
 *** Japanese
 **** Japanese Input
-IBus is being used since guix currently doesn't package any Japanese input extensions for fcitx, but a move to fcitx should be made when possible.
+IBus requires the cache to be removed and the following environment variables to be set for Anthy to work. See [[https://issues.guix.gnu.org/35610]].
+
 #+begin_src scheme
 (use-modules (gnu packages ibus))
 
+(define %jpn-input-packages (list
+                             ibus
+                             ibus-anthy))
+
+(define %jpn-input-services
+  (list
+   (simple-service 'jpn-input-service
+                   home-environment-variables-service-type
+                   `(("GUIX_GTK2_IM_MODULE_FILE" . "$HOME/.guix-home/profile/lib/gtk-2.0/2.10.0/immodules-gtk2.cache")
+                     ("GUIX_GTK3_IM_MODULE_FILE" . "$HOME/.guix-home/profile/lib/gtk-3.0/3.0.0/immodules-gtk3.cache")))))
+
 (define-public %jpn-input-home-module
-  (make-home-module (list
-                     ibus
-                     ibus-anthy)
-                    '()))
+  (make-home-module %jpn-input-packages %jpn-input-services))
 #+end_src
 **** Study Setup
 #+begin_src scheme
@@ -668,6 +719,7 @@ IBus is being used since guix currently doesn't package any Japanese input exten
                         %utilities-home-module
                         %emacs-home-module
                         %full-languages-home-module
+                        %nix-home-module
                         %applications-home-module
                         %fonts-home-module
                         %full-jpn-home-module)))
@@ -697,6 +749,7 @@ IBus is being used since guix currently doesn't package any Japanese input exten
             %home-services)))
 #+end_src
 * Scripts
+** Script Utilities
 The following shebang is necessary in bash scripts since guix does not have bash in the normal FHS location. We also grab the machine name either from the argument or the env variable.
 #+name: script-utils
 #+begin_src shell
@@ -719,16 +772,11 @@ function machine_script_init {
 }
 #+end_src
 ** Reconfigure System
-#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-system
-<<script-utils>>
-#+end_src
+We need to initialize the script with the current user to capture their environment, but then the system reconfiguration and bootloader entry all need to be done with the root user. To do this, we create a script intended to be run with sudo that is passed the necessary values from the overall script.
+#+begin_src shell :shebang "#!/usr/bin/env bash" :tangle bin/rs-sudo-subscript
+guix system -L . reconfigure machines/${1}-system.scm
 
-#+begin_src sh :tangle bin/reconfigure-system
-machine_script_init
-
-sudo guix system -L . reconfigure machines/${MACHINE}-system.scm
-
-sudo cat << EOF >> /boot/grub/grub.cfg
+cat << EOF >> /boot/grub/grub.cfg
 menuentry "Windows" {
   insmod part_gpt
   insmod fat
@@ -737,30 +785,53 @@ menuentry "Windows" {
   chainloader (\$root)/EFI/Microsoft/Boot/bootmgfw.efi
 }
 EOF
+#+end_src
+
+#+begin_src shell :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-system
+<<script-utils>>
+#+end_src
+
+#+begin_src sh :tangle bin/reconfigure-system
+machine_script_init
+
+sudo rs-sudo-subscript $MACHINE
 
 script_cleanup
 #+end_src
 ** Reconfigure Home
-#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-home
+#+begin_src shell :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/reconfigure-home
 <<script-utils>>
 #+end_src
 
-#+begin_src sh :tangle bin/reconfigure-home
+#+begin_src shell :noweb yes :tangle bin/reconfigure-home
 machine_script_init
 
 guix home -L . reconfigure machines/${MACHINE}-home.scm
+nix-env -iA <<nix-packages>>
 
 script_cleanup
 #+end_src
 ** Pull Guix Channels
-#+begin_src sh :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/guix-pull
+#+begin_src shell :noweb yes :shebang "#!/usr/bin/env bash" :tangle bin/guix-pull
 <<script-utils>>
 #+end_src
 
-#+begin_src sh :tangle bin/guix-pull
+#+begin_src shell :tangle bin/guix-pull
 script_init
 
 guix pull -C channels.scm
 
 script_cleanup
+#+end_src
+
+** Initialize User
+The main step here is setting up nix, which can be done with the following:
+#+begin_src shell :shebang "#!/usr/bin/env bash" :tangle bin/init-user
+nix-channel --add https://nixos.org/channels/nixpkgs-unstable
+nix-channel --update
+#+end_src
+
+We also need to remove the existing IBus cache so that the Anthy input will be detected; see [[Japanese Input]].
+#+begin_src shell :tangle bin/init-user
+rm -rf ~/.cache/ibus
 #+end_src

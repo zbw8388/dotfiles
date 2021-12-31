@@ -20,5 +20,6 @@ function machine_script_init {
 machine_script_init
 
 guix home -L . reconfigure machines/${MACHINE}-home.scm
+nix-env -iA nixpkgs.discord nixpkgs.slack nixpkgs.zoom-us nixpkgs.pdfmixtool nixpkgs._1password-gui nixpkgs.spotify
 
 script_cleanup

@@ -19,16 +19,6 @@ function machine_script_init {
 
 machine_script_init
 
-sudo guix system -L . reconfigure machines/${MACHINE}-system.scm
-
-sudo cat << EOF >> /boot/grub/grub.cfg
-menuentry "Windows" {
-  insmod part_gpt
-  insmod fat
-  insmod chain
-  search --label --set=root BOOT
-  chainloader (\$root)/EFI/Microsoft/Boot/bootmgfw.efi
-}
-EOF
+sudo rs-sudo-subscript $MACHINE
 
 script_cleanup
